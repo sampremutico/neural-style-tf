@@ -398,6 +398,11 @@ def gram_matrix(x, area, depth):
 
 # Normalize to have squared sum of 1
 def normalize_mask(mask):
+  total = 0.0
+  for i in range(len(mask)):
+    for j in range(len(mask[0])):
+      total += mask[i][j]*mask[i][j]
+  mask = mask / float(total)
   return mask
 
 # Here we mask both the content and the style image, 
