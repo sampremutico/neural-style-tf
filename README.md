@@ -8,25 +8,6 @@ by Manuel Ruder, Alexey Dosovitskiy, Thomas Brox
 * [Preserving Color in Neural Artistic Style Transfer](https://arxiv.org/abs/1606.05897)
 by Leon A. Gatys, Matthias Bethge, Aaron Hertzmann, Eli Shechtman  
 
-
-### Segmentation
-Style can be transferred to semantic segmentations in the content image.
-<p align="center">
-<img src="examples/segmentation/00110.jpg" height="180px">
-<img src="examples/segmentation/00110_mask.png" height="180px">
-<img src="examples/segmentation/00110_output.png" height="180px">  
-<img src="examples/segmentation/00017.jpg" height="180px">
-<img src="examples/segmentation/00017_mask.png" height="180px">
-<img src="examples/segmentation/00017_output.png" height="180px">  
-
-<img src="examples/segmentation/00768.jpg" height="180px">
-<img src="examples/segmentation/00768_mask.png" height="180px">
-<img src="examples/segmentation/00768_output.png" height="180px">
-<img src="examples/segmentation/02630.png" height="180px">
-<img src="examples/segmentation/02630_mask.png" height="180px">
-<img src="examples/segmentation/02630_output.png" height="180px"> 
-</p>
-
 ### Layer Representations
 The feature complexities and receptive field sizes increase down the CNN heirarchy.
 
@@ -81,14 +62,7 @@ Here we reproduce Figure 3 from [the original paper](https://arxiv.org/abs/1508.
 #### Dependencies:
 * [tensorflow](https://github.com/tensorflow/tensorflow)
 * [opencv](http://opencv.org/downloads.html)
-
-#### Optional (but recommended) dependencies:
-* [CUDA](https://developer.nvidia.com/cuda-downloads) 7.5+
-* [cuDNN](https://developer.nvidia.com/cudnn) 5.0+
-
-#### After installing the dependencies: 
-* Download the [VGG-19 model weights](http://www.vlfeat.org/matconvnet/pretrained/) (see the "VGG-VD models from the *Very Deep Convolutional Networks for Large-Scale Visual Recognition* project" section). More info about the VGG-19 network can be found [here](http://www.robots.ox.ac.uk/~vgg/research/very_deep/).
-* After downloading, copy the weights file `imagenet-vgg-verydeep-19.mat` to the project directory.
+* Download the [VGG-19 model weights](http://www.vlfeat.org/matconvnet/pretrained/) (see the "VGG-VD models from the *Very Deep Convolutional Networks for Large-Scale Visual Recognition* project" section). 
 
 ## Usage
 ### Basic Usage
