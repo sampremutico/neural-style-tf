@@ -484,19 +484,6 @@ def sum_style_losses(sess, net, style_imgs):
   total_style_loss /= float(len(style_imgs))
   return total_style_loss
 
-def sum_masked_content_losses(sess, net, content_img):
-  sess.run(net['input'].assign(content_img))
-  mask = args.content_mask_img
-  content_loss = 0.
-  for layer, weight in zip(args.content_layers, args.content_layer_weights):
-    p = sess.run(net[layer])
-    x = net[layer]
-    p = tf.convert_to_tensor(p)
-    p,x = mask_content_layer(p,x,mask)
-    content_loss += content_layer_loss(p, x) * weight
-  content_loss /= float(len(args.content_layers))
-  return content_loss
-
 def sum_content_losses(sess, net, content_img):
   sess.run(net['input'].assign(content_img))
   content_loss = 0.
