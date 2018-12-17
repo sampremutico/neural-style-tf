@@ -22,6 +22,7 @@ Mask.py generates segmentation masks for images. These masks are then written to
 We then pass in the path to the content image and path to the style image, as well as the name of both of the 
 masks for the content and style image (presumably generated from Mask.py). 
 
+### neural_style.py
 Assuming we've generated the required masks and the style/content images are located accordingly, we can generate masked, styled images using neural-style.py like so:
 
 
