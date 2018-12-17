@@ -7,6 +7,7 @@ import errno
 import time                       
 import cv2
 import os
+from matplotlib import pyplot as plt
 
 '''
   parsing and configuration
@@ -84,6 +85,9 @@ def parse_args():
   parser.add_argument('--content_layer_weights', nargs='+', type=float, 
     default=[1.0], 
     help='Contributions (weights) of each content layer to loss. (default: %(default)s)')
+
+  parser.add_argument('--style_layer_group',type=int,default=1,
+    help='Group of style layers to use for style loss')
   
   parser.add_argument('--style_layer_weights', nargs='+', type=float, 
     default=[0.2, 0.2, 0.2, 0.2, 0.2],
@@ -108,6 +112,19 @@ def parse_args():
   parser.add_argument('--style_mask_imgs', nargs='+', type=str, 
     default=None,
     help='Filenames of the style mask images (example: face_mask.png) (default: %(default)s)')
+
+
+
+  parser.add_argument('--content_mask', action='store_true',
+    default=False,
+    help='Transfer the style FROM masked regions.')
+
+  parser.add_argument('--content_mask_img', type=str, 
+    default=None,
+    help='Filenames of the content mask images (example: face_mask.png) (default: %(default)s)')
+
+
+
   
   parser.add_argument('--noise_ratio', type=float, 
     default=1.0, 
@@ -214,6 +231,14 @@ def parse_args():
   args = parser.parse_args()
 
   # normalize weights
+  if args.style_layer_group == 1:
+    args.style_layer_weights = [0.2,0.2,0.2,0.2,0.2]
+  elif args.style_layer_group == 2:
+    args.style_layer_weights = [0.5,0.5,0.0,0.0,0.0]
+  else:
+    args.style_layer_weights = [0.0,0.0,0.0,0.5,0.5]
+  print("style layer weights: {}".format(args.style_layer_weights))
+
   args.style_layer_weights   = normalize(args.style_layer_weights)
   args.content_layer_weights = normalize(args.content_layer_weights)
   args.style_imgs_weights    = normalize(args.style_imgs_weights)
@@ -371,19 +396,58 @@ def gram_matrix(x, area, depth):
   G = tf.matmul(tf.transpose(F), F)
   return G
 
-def mask_style_layer(a, x, mask_img):
+# Normalize to have squared sum of 1
+def normalize_mask(mask):
+  return mask
+
+# Here we mask both the content and the style image, 
+# as suggested by Gatys et al. cont_mask and style_mask
+# are flipped, but consintent nonetheless
+def dual_mask_styler_layer(a,x,style_mask, path="temp"):
   _, h, w, d = a.get_shape()
-  mask = get_mask_image(mask_img, w.value, h.value)
-  mask = tf.convert_to_tensor(mask)
-  tensors = []
+  # masked to be applied to the content image isolating where to apply style
+  content_mask = normalize_mask(get_mask_image(style_mask, w.value, h.value, path))
+  # content applied to the style image isolating where to extract style from
+  style_mask = normalize_mask(get_mask_image(args.content_mask_img,w.value,h.value,path))
+  cont_mask = tf.convert_to_tensor(content_mask)
+  style_mask = tf.convert_to_tensor(style_mask)
+  tensors_cont = []
+  tensors_style = []
   for _ in range(d.value): 
-    tensors.append(mask)
-  mask = tf.stack(tensors, axis=2)
-  mask = tf.stack(mask, axis=0)
-  mask = tf.expand_dims(mask, 0)
-  a = tf.multiply(a, mask)
-  x = tf.multiply(x, mask)
+    tensors_cont.append(cont_mask)
+    tensors_style.append(style_mask)
+
+  cont_mask = tf.stack(tensors_cont, axis=2)
+  style_mask = tf.stack(tensors_style, axis=2)
+
+  cont_mask = tf.stack(cont_mask, axis=0)
+  style_mask = tf.stack(style_mask, axis=0)
+
+  cont_mask = tf.expand_dims(cont_mask, 0)
+  style_mask = tf.expand_dims(style_mask, 0)
+
+  a = tf.multiply(a, style_mask)
+  x = tf.multiply(x, cont_mask)
   return a, x
+
+def mask_style_layer(a, x, mask_img, path="temp"):
+  if args.content_mask == True:
+    return dual_mask_styler_layer(a,x,mask_img,path)
+  else:
+    _, h, w, d = a.get_shape()
+    mask = get_mask_image(mask_img, w.value, h.value, path)
+    print("After converting to tensor {}".format(mask.shape))
+    mask = tf.convert_to_tensor(mask)
+    print("After converting to tensor {}".format(mask.shape))
+    tensors = []
+    for _ in range(d.value): 
+      tensors.append(mask)
+    mask = tf.stack(tensors, axis=2)
+    mask = tf.stack(mask, axis=0)
+    mask = tf.expand_dims(mask, 0)
+    a = tf.multiply(a, mask)
+    x = tf.multiply(x, mask)
+    return a, x
 
 def sum_masked_style_losses(sess, net, style_imgs):
   total_style_loss = 0.
@@ -393,10 +457,11 @@ def sum_masked_style_losses(sess, net, style_imgs):
     sess.run(net['input'].assign(img))
     style_loss = 0.
     for layer, weight in zip(args.style_layers, args.style_layer_weights):
+      print(layer,weight)
       a = sess.run(net[layer])
       x = net[layer]
       a = tf.convert_to_tensor(a)
-      a, x = mask_style_layer(a, x, img_mask)
+      a, x = mask_style_layer(a, x, img_mask, layer)
       style_loss += style_layer_loss(a, x) * weight
     style_loss /= float(len(args.style_layers))
     total_style_loss += (style_loss * img_weight)
@@ -418,6 +483,19 @@ def sum_style_losses(sess, net, style_imgs):
     total_style_loss += (style_loss * img_weight)
   total_style_loss /= float(len(style_imgs))
   return total_style_loss
+
+def sum_masked_content_losses(sess, net, content_img):
+  sess.run(net['input'].assign(content_img))
+  mask = args.content_mask_img
+  content_loss = 0.
+  for layer, weight in zip(args.content_layers, args.content_layer_weights):
+    p = sess.run(net[layer])
+    x = net[layer]
+    p = tf.convert_to_tensor(p)
+    p,x = mask_content_layer(p,x,mask)
+    content_loss += content_layer_loss(p, x) * weight
+  content_loss /= float(len(args.content_layers))
+  return content_loss
 
 def sum_content_losses(sess, net, content_img):
   sess.run(net['input'].assign(content_img))
@@ -558,6 +636,9 @@ def stylize(content_img, style_imgs, init_img, frame=None):
       L_style = sum_style_losses(sess, net, style_imgs)
     
     # content loss
+    #if args.content_mask:
+    #  L_content = sum_masked_content_losses(sess,net,content_img)
+    #else:
     L_content = sum_content_losses(sess, net, content_img)
     
     # denoising loss
@@ -592,6 +673,13 @@ def stylize(content_img, style_imgs, init_img, frame=None):
     if args.original_colors:
       output_img = convert_to_original_colors(np.copy(content_img), output_img)
 
+   # print(output_img[:,0,:,:].shape)
+
+    #cv2.imshow("output",postprocess(content_img))
+    #cv2.show()
+    cv2.waitKey(9000)
+    cv2.destroyAllWindows()
+    #exit(0)
     if args.video:
       write_video_output(frame, output_img)
     else:
@@ -710,9 +798,11 @@ def get_content_image(content_img):
   mx = args.max_size
   # resize if > max size
   if h > w and h > mx:
+    print("resizing: h {} w {} d {}".format(h,w,d))
     w = (float(mx) / float(h)) * w
     img = cv2.resize(img, dsize=(int(w), mx), interpolation=cv2.INTER_AREA)
   if w > mx:
+    print("resizing: h {} w {} d {}".format(h,w,d))
     h = (float(mx) / float(w)) * h
     img = cv2.resize(img, dsize=(mx, int(h)), interpolation=cv2.INTER_AREA)
   img = preprocess(img)
@@ -738,14 +828,25 @@ def get_noise_image(noise_ratio, content_img):
   img = noise_ratio * noise_img + (1.-noise_ratio) * content_img
   return img
 
-def get_mask_image(mask_img, width, height):
-  path = os.path.join(args.content_img_dir, mask_img)
-  img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+def get_mask_image(mask_img, width, height, layer="temp"):
+  path = os.path.join("./data/masks",mask_img)
+  print(path, mask_img)
+  #path = os.path.join(args.content_img_dir, mask_img)
+  img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+  #plt.imshow(img)
+  #plt.show()
   check_image(img, path)
   img = cv2.resize(img, dsize=(width, height), interpolation=cv2.INTER_AREA)
   img = img.astype(np.float32)
   mx = np.amax(img)
   img /= mx
+  #plt.imshow(img)
+  #plt.show()
+  #idx = path.rfind(".")
+  #mask_path_layer = path[:idx]+"_{}.png".format(layer)
+  #print(mask_path_layer)
+  #cv2.imwrite(mask_path_layer,img)
+  #print("saved mask at {} for layer {}".format(mask_path_layer,layer))
   return img
 
 def get_prev_frame(frame):
