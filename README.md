@@ -16,60 +16,28 @@ by Leon A. Gatys, Matthias Bethge, Aaron Hertzmann, Eli Shechtman
 * [opencv](http://opencv.org/downloads.html)
 * Download the [VGG-19 model weights](http://www.vlfeat.org/matconvnet/pretrained/) (see the "VGG-VD models from the *Very Deep Convolutional Networks for Large-Scale Visual Recognition* project" section). 
 
-## Usage
-### Basic Usage
+## Overview
+### Mask.py
+Mask.py generates segmentation masks for images. These masks are then written to data/masks/.
+We then pass in the path to the content image and path to the style image, as well as the name of both of the 
+masks for the content and style image (presumably generated from Mask.py). 
 
-#### Single Image
-1. Copy 1 content image to the default image content directory `./image_input`
-2. Copy 1 or more style images to the default style directory `./styles`
-3. Run the command:
-```
-bash stylize_image.sh <path_to_content_image> <path_to_style_image>
-```
-*Example*:
-```
-bash stylize_image.sh ./image_input/lion.jpg ./styles/kandinsky.jpg
-```
+Assuming we've generated the required masks and the style/content images are located accordingly, we can generate masked, styled images using neural-style.py like so:
 
 
 ```
-python neural_style.py --content_img golden_gate.jpg \
-                       --style_imgs starry-night.jpg \
-                       --max_size 1000 \
-                       --max_iterations 100 \
-                       --original_colors \
-                       --device /cpu:0 \
-                       --verbose;
+python neural_style.py --content_img data/tiny_raw/ikea/ikea_chair.jpeg \
+						--style_imgs data/tiny_raw/etc/west_elm.jpg \
+						--style_imgs_dir . --content_img_dir . 
+						--max_size 256  --max_iterations 1000 \
+						--print_iterations 10 --device /cpu:0 --verbose \
+						--style_mask --style_mask_imgs ikea_chair_mask.png \
+						--content_mask --content_mask_img west_elm_mask.png \
+						--img_name dual_mask_ikea_westelm \
+						--style_layer_group 2 \
 ```
 
-#### Arguments
-* `--content_img`: Filename of the content image. *Example*: `lion.jpg`
-* `--content_img_dir`: Relative or absolute directory path to the content image. *Default*: `./image_input`
-* `--style_imgs`: Filenames of the style images. To use multiple style images, pass a *space-separated* list.  *Example*: `--style_imgs starry-night.jpg`
-* `--style_imgs_weights`: The blending weights for each style image.  *Default*: `1.0` (assumes only 1 style image)
-* `--style_imgs_dir`: Relative or absolute directory path to the style images. *Default*: `./styles`
-* `--init_img_type`: Image used to initialize the network. *Choices*: `content`, `random`, `style`. *Default*: `content`
-* `--max_size`: Maximum width or height of the input images. *Default*: `512`
-* `--content_weight`: Weight for the content loss function. *Default*: `5e0`
-* `--style_weight`: Weight for the style loss function. *Default*: `1e4`
-* `--tv_weight`: Weight for the total variational loss function. *Default*: `1e-3`
-* `--temporal_weight`: Weight for the temporal loss function. *Default*: `2e2`
-* `--content_layers`: *Space-separated* VGG-19 layer names used for the content image. *Default*: `conv4_2`
-* `--style_layers`: *Space-separated* VGG-19 layer names used for the style image. *Default*: `relu1_1 relu2_1 relu3_1 relu4_1 relu5_1`
-* `--content_layer_weights`: *Space-separated* weights of each content layer to the content loss. *Default*: `1.0`
-* `--style_layer_weights`: *Space-separated* weights of each style layer to loss. *Default*: `0.2 0.2 0.2 0.2 0.2`
-* `--original_colors`: Boolean flag indicating if the style is transferred but not the colors.
-* `--color_convert_type`: Color spaces (YUV, YCrCb, CIE L\*u\*v\*, CIE L\*a\*b\*) for luminance-matching conversion to original colors. *Choices*: `yuv`, `ycrcb`, `luv`, `lab`. *Default*: `yuv`
-* `--style_mask`: Boolean flag indicating if style is transferred to masked regions.
-* `--style_mask_imgs`: Filenames of the style mask images (example: `face_mask.png`). To use multiple style mask images, pass a *space-separated* list.  *Example*: `--style_mask_imgs face_mask.png face_mask_inv.png`
-* `--noise_ratio`: Interpolation value between the content image and noise image if network is initialized with `random`. *Default*: `1.0`
-* `--seed`: Seed for the random number generator. *Default*: `0`
-* `--model_weights`: Weights and biases of the VGG-19 network.  Download [here](http://www.vlfeat.org/matconvnet/pretrained/). *Default*:`imagenet-vgg-verydeep-19.mat`
-* `--pooling_type`: Type of pooling in convolutional neural network. *Choices*: `avg`, `max`. *Default*: `avg`
-* `--device`: GPU or CPU device.  GPU mode highly recommended but requires NVIDIA CUDA. *Choices*: `/gpu:0` `/cpu:0`. *Default*: `/gpu:0`
-* `--img_output_dir`: Directory to write output to.  *Default*: `./image_output`
-* `--img_name`: Filename of the output image. *Default*: `result`
-* `--verbose`: Boolean flag indicating if statements should be printed to the console.
+This would style ikea_chair.jpeg in the style of west_elm.jpg, trimming the images to 256 pixels and using 100 iterations. Additionally, it uses a mask specified by --style_mask_imgs to decide where on the content image to place the style from the style image, specified by ikea_chair_mask.png here. Next, it uses a content_mask to determine where to take style from the style image, specified by west_elm_mask.png here. (Apologies for the coutner-intuitive names.) Finally, it uses style_layer_group 2, which specifies which layers to use in the calculation of style loss. Valid options being 1, 2, and 3. 1 uses a variety of layers across the network, 1 uses two earlier layers, and 3 uses two deeper layers. It then outputs the resulting image, along with the jobs metadata, to a dual_mask_ikea_westelm directory.
 
 ## Acknowledgements
 
