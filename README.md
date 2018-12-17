@@ -1,61 +1,13 @@
 # neural-style-tf
 
-This is a TensorFlow implementation of several techniques described in the papers: 
+Final project repo for CS230, forked from original repo.
+Originally based on techniques described in the papers: 
 * [Image Style Transfer Using Convolutional Neural Networks](http://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf)
 by Leon A. Gatys, Alexander S. Ecker, Matthias Bethge
 * [Artistic style transfer for videos](https://arxiv.org/abs/1604.08610)
 by Manuel Ruder, Alexey Dosovitskiy, Thomas Brox
 * [Preserving Color in Neural Artistic Style Transfer](https://arxiv.org/abs/1606.05897)
 by Leon A. Gatys, Matthias Bethge, Aaron Hertzmann, Eli Shechtman  
-
-### Layer Representations
-The feature complexities and receptive field sizes increase down the CNN heirarchy.
-
-Here we reproduce Figure 3 from [the original paper](https://arxiv.org/abs/1508.06576):
-<table align='center'>
-<tr align='center'>
-<td></td>
-<td>1 x 10^-5</td>
-<td>1 x 10^-4</td>
-<td>1 x 10^-3</td>
-<td>1 x 10^-2</td>
-</tr>
-<tr>
-<td>conv1_1</td>
-<td><img src="examples/layers/conv1_1_1e5.png" width="192"></td>
-<td><img src="examples/layers/conv1_1_1e4.png" width="192"></td>
-<td><img src="examples/layers/conv1_1_1e3.png" width="192"></td>
-<td><img src="examples/layers/conv1_1_1e2.png" width="192"></td>
-</tr>
-<tr>
-<td>conv2_1</td>
-<td><img src="examples/layers/conv2_1_1e5.png" width="192"></td>
-<td><img src="examples/layers/conv2_1_1e4.png" width="192"></td>
-<td><img src="examples/layers/conv2_1_1e3.png" width="192"></td>
-<td><img src="examples/layers/conv2_1_1e2.png" width="192"></td>
-</tr>
-<tr>
-<td>conv3_1</td>
-<td><img src="examples/layers/conv3_1_1e5.png" width="192"></td>
-<td><img src="examples/layers/conv3_1_1e4.png" width="192"></td>
-<td><img src="examples/layers/conv3_1_1e3.png" width="192"></td>
-<td><img src="examples/layers/conv3_1_1e2.png" width="192"></td>
-</tr>
-<tr>
-<td>conv4_1</td>
-<td><img src="examples/layers/conv4_1_1e5.png" width="192"></td>
-<td><img src="examples/layers/conv4_1_1e4.png" width="192"></td>
-<td><img src="examples/layers/conv4_1_1e3.png" width="192"></td>
-<td><img src="examples/layers/conv4_1_1e2.png" width="192"></td>
-</tr>
-<tr>
-<td>conv5_1</td>
-<td><img src="examples/layers/conv5_1_1e5.png" width="192"></td>
-<td><img src="examples/layers/conv5_1_1e4.png" width="192"></td>
-<td><img src="examples/layers/conv5_1_1e3.png" width="192"></td>
-<td><img src="examples/layers/conv5_1_1e2.png" width="192"></td>
-</tr>
-</table>
 
 
 ## Setup
@@ -78,18 +30,8 @@ bash stylize_image.sh <path_to_content_image> <path_to_style_image>
 ```
 bash stylize_image.sh ./image_input/lion.jpg ./styles/kandinsky.jpg
 ```
-*Note*: Supported image formats include: `.png`, `.jpg`, `.ppm`, `.pgm`
 
-*Note*: Paths to images should not contain the `~` character to represent your home directory; you should instead use a relative path or the absolute path.
 
-#### Single Image or Video Frames
-1. Copy content images to the default image content directory `./image_input` or copy video frames to the default video content directory `./video_input`  
-2. Copy 1 or more style images to the default style directory `./styles`  
-3. Run the command with specific arguments:
-```
-python neural_style.py <arguments>
-```
-*Example (Single Image)*:
 ```
 python neural_style.py --content_img golden_gate.jpg \
                        --style_imgs starry-night.jpg \
@@ -128,23 +70,6 @@ python neural_style.py --content_img golden_gate.jpg \
 * `--img_output_dir`: Directory to write output to.  *Default*: `./image_output`
 * `--img_name`: Filename of the output image. *Default*: `result`
 * `--verbose`: Boolean flag indicating if statements should be printed to the console.
-
-#### Optimization Arguments
-* `--optimizer`: Loss minimization optimizer.  L-BFGS gives better results.  Adam uses less memory. *Choices*: `lbfgs`, `adam`. *Default*: `lbfgs`
-* `--learning_rate`: Learning-rate parameter for the Adam optimizer. *Default*: `1e0`  
-
-<p align="center">
-<img src="examples/equations/plot.png" width="360px">
-</p>
-
-* `--max_iterations`: Max number of iterations for the Adam or L-BFGS optimizer. *Default*: `1000`
-* `--print_iterations`: Number of iterations between optimizer print statements. *Default*: `50`
-* `--content_loss_function`: Different constants K in the content loss function. *Choices*: `1`, `2`, `3`. *Default*: `1` 
-
-<p align="center">
-<img src="examples/equations/content.png" width="321px">
-</p>
-
 
 ## Acknowledgements
 
